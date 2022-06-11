@@ -51,7 +51,6 @@ include_directories(
 	"${CMAKE_SOURCE_DIR}/src"
 	"${CMAKE_SOURCE_DIR}/include"
 	"${CMAKE_SOURCE_DIR}/include/glad"
-	"${CMAKE_SOURCE_DIR}/include/glm"
 )
 
 # Define the link libraries
