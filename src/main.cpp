@@ -65,9 +65,9 @@ int main(int argc, char* argv[]) {
 	bool showResult = false;
 
 	int inputSize[2]{ 400, 225 };
-	ImVec2 imageSize(400, 225);
 
 	uint8_t* pixels = nullptr;
+	raytracer rt;
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -80,15 +80,31 @@ int main(int argc, char* argv[]) {
 		ImGui::Begin("control");
 
 		ImGui::InputInt2("size", inputSize);
+		ImGui::InputInt("samples per pixel", &samples_per_pixel);
 		if (ImGui::Button("render"))
 		{
-			imageSize = ImVec2((float)inputSize[0], (float)inputSize[1]);
+			image_width = inputSize[0];
+			image_height = inputSize[1];
 
 			if (pixels != nullptr)
 				delete[] pixels;
-			pixels = new uint8_t[(int)imageSize.x * (int)imageSize.y * 4];
+			pixels = new uint8_t[image_width * image_height * 4];
 
-			Render(pixels, (int)imageSize.x, (int)imageSize.y);
+			rt.render(pixels);
+
+			showResult = true;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("render sync"))
+		{
+			image_width = inputSize[0];
+			image_height = inputSize[1];
+
+			if (pixels != nullptr)
+				delete[] pixels;
+			pixels = new uint8_t[image_width * image_height * 4];
+
+			rt.render_sync(pixels);
 
 			showResult = true;
 		}
@@ -96,13 +112,13 @@ int main(int argc, char* argv[]) {
 
 		if (showResult)
 		{
-			ImGui::SetNextWindowSize(ImVec2(20 + imageSize.x, 35 + imageSize.y));
+			ImGui::SetNextWindowSize(ImVec2(20 + (float)image_width, 35 + (float)image_height));
 			ImGui::Begin("result", &showResult);
 
 			glBindTexture(GL_TEXTURE_2D, renderTexture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)imageSize.x, (int)imageSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-			ImGui::Image((ImTextureID)(intptr_t)renderTexture, imageSize, ImVec2(0, 1), ImVec2(1, 0));
+			ImGui::Image((ImTextureID)(intptr_t)renderTexture, ImVec2((float)image_width, (float)image_height), ImVec2(0, 1), ImVec2(1, 0));
 			ImGui::End();
 		}
 
