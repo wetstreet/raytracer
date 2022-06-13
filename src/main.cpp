@@ -11,6 +11,8 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
+#include "raytracer.h"
+
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -62,8 +64,8 @@ int main(int argc, char* argv[]) {
 
 	bool showResult = false;
 
-	int inputSize[2]{ 256, 256 };
-	ImVec2 imageSize(256, 256);
+	int inputSize[2]{ 400, 225 };
+	ImVec2 imageSize(400, 225);
 
 	uint8_t* pixels = nullptr;
 
@@ -80,32 +82,13 @@ int main(int argc, char* argv[]) {
 		ImGui::InputInt2("size", inputSize);
 		if (ImGui::Button("render"))
 		{
-			imageSize.x = inputSize[0];
-			imageSize.y = inputSize[1];
+			imageSize = ImVec2((float)inputSize[0], (float)inputSize[1]);
 
 			if (pixels != nullptr)
 				delete[] pixels;
-			pixels = new uint8_t[imageSize.x * imageSize.y * 4];
+			pixels = new uint8_t[(int)imageSize.x * (int)imageSize.y * 4];
 
-			for (int i = 0; i < imageSize.x; i++)
-			{
-				for (int j = 0; j < imageSize.y; j++)
-				{
-					auto r = double(i) / (imageSize.x - 1);
-					auto g = double(j) / (imageSize.y - 1);
-					auto b = 0.25;
-
-					int ir = static_cast<int>(255.999 * r);
-					int ig = static_cast<int>(255.999 * g);
-					int ib = static_cast<int>(255.999 * b);
-
-					int index = i + j * imageSize.y;
-					pixels[index * 4] = ir;
-					pixels[index * 4 + 1] = ig;
-					pixels[index * 4 + 2] = ib;
-					pixels[index * 4 + 3] = 255;
-				}
-			}
+			Render(pixels, (int)imageSize.x, (int)imageSize.y);
 
 			showResult = true;
 		}
@@ -113,11 +96,11 @@ int main(int argc, char* argv[]) {
 
 		if (showResult)
 		{
-			ImGui::SetNextWindowSize(imageSize + ImVec2(20, 35));
+			ImGui::SetNextWindowSize(ImVec2(20 + imageSize.x, 35 + imageSize.y));
 			ImGui::Begin("result", &showResult);
 
 			glBindTexture(GL_TEXTURE_2D, renderTexture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageSize.x, imageSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)imageSize.x, (int)imageSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
 			ImGui::Image((ImTextureID)(intptr_t)renderTexture, imageSize, ImVec2(0, 1), ImVec2(1, 0));
 			ImGui::End();
