@@ -8,10 +8,16 @@
 
 #include "ThreadPool.h"
 
-color ray_color(const ray& r, const hittable& world) {
+color ray_color(const ray& r, const hittable& world, int depth) {
 	hit_record rec;
-	if (world.hit(r, 0, infinity, rec)) {
-		return 0.5 * (rec.normal + color(1, 1, 1));
+
+	// If we've exceeded the ray bounce limit, no more light is gathered.
+	if (depth <= 0)
+		return color(0, 0, 0);
+
+	if (world.hit(r, 0.001, infinity, rec)) {
+		point3 target = rec.p + rec.normal + random_unit_vector();
+		return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth - 1);
 	}
 	vec3 unit_direction = unit_vector(r.direction());
 	auto t = 0.5 * (unit_direction.y() + 1.0);
@@ -21,6 +27,7 @@ color ray_color(const ray& r, const hittable& world) {
 int image_width = 400;
 int image_height = 225;
 int samples_per_pixel = 100;
+const int max_depth = 50;
 
 // multi-threading
 ThreadPool pool(std::thread::hardware_concurrency());
@@ -34,7 +41,28 @@ class raytracer {
 	hittable_list world;
 	camera cam;
 	uint8_t* pixels = nullptr;
+
 public:
+	void write_color(color pixel_color, int i, int j)
+	{
+		auto r = pixel_color.x();
+		auto g = pixel_color.y();
+		auto b = pixel_color.z();
+
+		// Divide the color by the number of samples and gamma-correct for gamma=2.0.
+		auto scale = 1.0 / samples_per_pixel;
+		r = sqrt(scale * r);
+		g = sqrt(scale * g);
+		b = sqrt(scale * b);
+
+		// Write the translated [0,255] value of each color component.
+		int index = i + j * image_width;
+		pixels[index * 4] = static_cast<int>(256 * clamp(r, 0.0, 0.999));
+		pixels[index * 4 + 1] = static_cast<int>(256 * clamp(g, 0.0, 0.999));
+		pixels[index * 4 + 2] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
+		pixels[index * 4 + 3] = 255;
+	}
+
 	void render(uint8_t* _pixels)
 	{
 		pixels = _pixels;
@@ -70,25 +98,10 @@ public:
 						auto u = (i + random_double()) / (image_width - 1);
 						auto v = (j + random_double()) / (image_height - 1);
 						ray r = cam.get_ray(u, v);
-						pixel_color += ray_color(r, world);
+						pixel_color += ray_color(r, world, max_depth);
 					}
 
-					auto r = pixel_color.x();
-					auto g = pixel_color.y();
-					auto b = pixel_color.z();
-
-					// Divide the color by the number of samples.
-					auto scale = 1.0 / samples_per_pixel;
-					r *= scale;
-					g *= scale;
-					b *= scale;
-
-					// writes color
-					int index = i + j * image_width;
-					pixels[index * 4] = static_cast<int>(256 * clamp(r, 0.0, 0.999));
-					pixels[index * 4 + 1] = static_cast<int>(256 * clamp(g, 0.0, 0.999));
-					pixels[index * 4 + 2] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
-					pixels[index * 4 + 3] = 255;
+					write_color(pixel_color, i, j);
 				}
 			}
 			{
@@ -96,7 +109,7 @@ public:
 				finishedTileCount++;
 				if (finishedTileCount == totalTileCount)
 				{
-					std::cout << "render finished, spent " << glfwGetTime() - startTime << "s." << std::endl;
+					std::cout << "render async finished, spent " << glfwGetTime() - startTime << "s." << std::endl;
 				}
 			}
 		};
@@ -132,27 +145,12 @@ public:
 					auto u = (i + random_double()) / (image_width - 1);
 					auto v = (j + random_double()) / (image_height - 1);
 					ray r = cam.get_ray(u, v);
-					pixel_color += ray_color(r, world);
+					pixel_color += ray_color(r, world, max_depth);
 				}
 
-				auto r = pixel_color.x();
-				auto g = pixel_color.y();
-				auto b = pixel_color.z();
-
-				// Divide the color by the number of samples.
-				auto scale = 1.0 / samples_per_pixel;
-				r *= scale;
-				g *= scale;
-				b *= scale;
-
-				// writes color
-				int index = i + j * image_width;
-				pixels[index * 4] = static_cast<int>(256 * clamp(r, 0.0, 0.999));
-				pixels[index * 4 + 1] = static_cast<int>(256 * clamp(g, 0.0, 0.999));
-				pixels[index * 4 + 2] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
-				pixels[index * 4 + 3] = 255;
+				write_color(pixel_color, i, j);
 			}
 		}
-		std::cout << "render finished, spent " << glfwGetTime() - startTime << "s." << std::endl;
+		std::cout << "render sync finished, spent " << glfwGetTime() - startTime << "s." << std::endl;
 	}
 };
