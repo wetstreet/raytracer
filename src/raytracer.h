@@ -28,10 +28,17 @@ color ray_color(const ray& r, const hittable& world, int depth) {
 	return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
+// screen
 int image_width = 400;
 int image_height = 225;
 int samples_per_pixel = 100;
 const int max_depth = 50;
+
+// camera
+point3 lookfrom(-2, 2, 1);
+point3 lookat(0, 0, -1);
+vec3 vup(0, 1, 0);
+float vfov = 90;
 
 // multi-threading
 ThreadPool pool(std::thread::hardware_concurrency());
@@ -67,17 +74,24 @@ public:
 		pixels[index * 4 + 3] = 255;
 	}
 
-	void init_world()
+	void init_render()
 	{
+		// World
+		auto R = cos(pi / 4);
+
 		auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
-		auto material_center = make_shared<lambertian>(color(0.7, 0.3, 0.3));
-		auto material_left = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
-		auto material_right = make_shared<metal>(color(0.8, 0.6, 0.2), 1.0);
+		auto material_center = make_shared<lambertian>(color(0.1, 0.2, 0.5));
+		auto material_left = make_shared<dielectric>(1.5);
+		auto material_right = make_shared<metal>(color(0.8, 0.6, 0.2), 0.0);
 
 		world.add(make_shared<sphere>(point3(0.0, -100.5, -1.0), 100.0, material_ground));
 		world.add(make_shared<sphere>(point3(0.0, 0.0, -1.0), 0.5, material_center));
 		world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), 0.5, material_left));
+		world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), -0.45, material_left));
 		world.add(make_shared<sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
+
+		// Camera
+		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height);
 
 	}
 
@@ -86,11 +100,8 @@ public:
 		pixels = _pixels;
 		startTime = glfwGetTime();
 
-		// World
-		init_world();
-
-		// Camera
-		cam.init(image_width / (float)image_height);
+		// world and camera
+		init_render();
 
 		int xTiles = (image_width + tileSize - 1) / tileSize;
 		int yTiles = (image_height + tileSize - 1) / tileSize;
@@ -144,11 +155,8 @@ public:
 		pixels = _pixels;
 		startTime = glfwGetTime();
 
-		// World
-		init_world();
-
-		// Camera
-		cam.init(image_width / (float)image_height);
+		// world and camera
+		init_render();
 
 		for (int j = 0; j < image_height; j++)
 		{

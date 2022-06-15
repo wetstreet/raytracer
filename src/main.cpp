@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(256, 256, "raytracer", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(300, 200, "raytracer", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
@@ -80,7 +80,11 @@ int main(int argc, char* argv[]) {
 		ImGui::Begin("control");
 
 		ImGui::InputInt2("size", inputSize);
-		ImGui::InputInt("samples per pixel", &samples_per_pixel);
+		ImGui::InputInt("samples", &samples_per_pixel);
+		ImGui::Separator();
+		ImGui::InputFloat3("lookfrom", (float*)&lookfrom);
+		ImGui::InputFloat3("lookat", (float*)&lookat);
+		ImGui::InputFloat("vfov", &vfov);
 		if (ImGui::Button("render"))
 		{
 			image_width = inputSize[0];
