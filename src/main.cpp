@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(300, 200, "raytracer", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(350, 250, "raytracer", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
@@ -64,10 +64,18 @@ int main(int argc, char* argv[]) {
 
 	bool showResult = false;
 
-	int inputSize[2]{ 400, 225 };
+	int inputSize[2]{ image_width, image_height };
 
 	uint8_t* pixels = nullptr;
 	raytracer rt;
+
+	auto InputDouble3 = [] (const char* label, double* v)
+	{
+		static float temp[3];
+		for (int i = 0; i < 3; i++) temp[i] = (float)v[i];
+		ImGui::InputFloat3(label, temp);
+		for (int i = 0; i < 3; i++) v[i] = temp[i];
+	};
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -82,9 +90,11 @@ int main(int argc, char* argv[]) {
 		ImGui::InputInt2("size", inputSize);
 		ImGui::InputInt("samples", &samples_per_pixel);
 		ImGui::Separator();
-		ImGui::InputFloat3("lookfrom", (float*)&lookfrom);
-		ImGui::InputFloat3("lookat", (float*)&lookat);
+		InputDouble3("lookfrom", (double*)&lookfrom);
+		InputDouble3("lookat", (double*)&lookat);
 		ImGui::InputFloat("vfov", &vfov);
+		ImGui::InputFloat("aperture", &aperture);
+		ImGui::InputFloat("focus distance", &dist_to_focus);
 		if (ImGui::Button("render"))
 		{
 			image_width = inputSize[0];
