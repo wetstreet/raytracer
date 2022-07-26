@@ -6,6 +6,7 @@
 #include "sphere.h"
 #include "camera.h"
 #include "material.h"
+#include "moving_sphere.h"
 
 #include "ThreadPool.h"
 
@@ -96,7 +97,9 @@ public:
 						// diffuse
 						auto albedo = color::random() * color::random();
 						sphere_material = make_shared<lambertian>(albedo);
-						world.add(make_shared<sphere>(center, 0.2, sphere_material));
+						auto center2 = center + vec3(0, random_double(0, .5), 0);
+						world.add(make_shared<moving_sphere>(
+							center, center2, 0.0, 1.0, 0.2, sphere_material));
 					}
 					else if (choose_mat < 0.95) {
 						// metal
@@ -124,7 +127,7 @@ public:
 		world.add(make_shared<sphere>(point3(4, 1, 0), 1.0, material3));
 
 		// Camera
-		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus);
+		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
 
 	}
 
