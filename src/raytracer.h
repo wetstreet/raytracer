@@ -77,13 +77,21 @@ public:
 		pixels[index * 4 + 3] = 255;
 	}
 
-	void init_render()
+	void init_two_spheres()
 	{
-		// World
-		auto R = cos(pi / 4);
+		auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
 
-		auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
-		world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, ground_material));
+		world.add(make_shared<sphere>(point3(0, -10, 0), 10, make_shared<lambertian>(checker)));
+		world.add(make_shared<sphere>(point3(0, 10, 0), 10, make_shared<lambertian>(checker)));
+
+		// Camera
+		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
+	}
+
+	void init_random_scene()
+	{
+		auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
+		world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, make_shared<lambertian>(checker)));
 
 		for (int a = -11; a < 11; a++) {
 			for (int b = -11; b < 11; b++) {
@@ -128,7 +136,6 @@ public:
 
 		// Camera
 		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
-
 	}
 
 	void render(uint8_t* _pixels)
@@ -137,7 +144,7 @@ public:
 		startTime = glfwGetTime();
 
 		// world and camera
-		init_render();
+		init_two_spheres();
 
 		int xTiles = (image_width + tileSize - 1) / tileSize;
 		int yTiles = (image_height + tileSize - 1) / tileSize;
@@ -192,7 +199,7 @@ public:
 		startTime = glfwGetTime();
 
 		// world and camera
-		init_render();
+		init_two_spheres();
 
 		for (int j = 0; j < image_height; j++)
 		{
