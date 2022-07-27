@@ -93,6 +93,15 @@ public:
 		world.add(make_shared<sphere>(point3(0, 2, 0), 2, make_shared<lambertian>(pertext)));
 	}
 
+	void init_earth()
+	{
+		auto earth_texture = make_shared<image_texture>("res/earthmap.jpg");
+		auto earth_surface = make_shared<lambertian>(earth_texture);
+		auto globe = make_shared<sphere>(point3(0, 0, 0), 2, earth_surface);
+
+		world.add(globe);
+	}
+
 	void init_random_scene()
 	{
 		auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
@@ -146,7 +155,7 @@ public:
 		startTime = glfwGetTime();
 
 		// world
-		init_two_perlin_spheres();
+		init_earth();
 
 		// Camera
 		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
