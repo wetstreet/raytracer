@@ -30,9 +30,9 @@ color ray_color(const ray& r, const hittable& world, int depth) {
 }
 
 // screen
-int image_width = 1200;
-int image_height = 800;
-int samples_per_pixel = 500;
+int image_width = 400;
+int image_height = 225;
+int samples_per_pixel = 50;
 const int max_depth = 50;
 
 // camera
@@ -41,7 +41,7 @@ point3 lookat(0, 0, 0);
 vec3 vup(0, 1, 0);
 float vfov = 20;
 float dist_to_focus = 10.0f;
-float aperture = 0.1f;
+float aperture = 0.0f;
 
 // multi-threading
 ThreadPool pool(std::thread::hardware_concurrency());
@@ -83,9 +83,14 @@ public:
 
 		world.add(make_shared<sphere>(point3(0, -10, 0), 10, make_shared<lambertian>(checker)));
 		world.add(make_shared<sphere>(point3(0, 10, 0), 10, make_shared<lambertian>(checker)));
+	}
 
-		// Camera
-		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
+	void init_two_perlin_spheres()
+	{
+		auto pertext = make_shared<noise_texture>(4);
+
+		world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, make_shared<lambertian>(pertext)));
+		world.add(make_shared<sphere>(point3(0, 2, 0), 2, make_shared<lambertian>(pertext)));
 	}
 
 	void init_random_scene()
@@ -133,9 +138,6 @@ public:
 
 		auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
 		world.add(make_shared<sphere>(point3(4, 1, 0), 1.0, material3));
-
-		// Camera
-		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
 	}
 
 	void render(uint8_t* _pixels)
@@ -143,8 +145,11 @@ public:
 		pixels = _pixels;
 		startTime = glfwGetTime();
 
-		// world and camera
-		init_two_spheres();
+		// world
+		init_two_perlin_spheres();
+
+		// Camera
+		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
 
 		int xTiles = (image_width + tileSize - 1) / tileSize;
 		int yTiles = (image_height + tileSize - 1) / tileSize;
@@ -198,8 +203,11 @@ public:
 		pixels = _pixels;
 		startTime = glfwGetTime();
 
-		// world and camera
+		// world
 		init_two_spheres();
+
+		// Camera
+		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
 
 		for (int j = 0; j < image_height; j++)
 		{
