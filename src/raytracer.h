@@ -28,21 +28,25 @@ color ray_color(const ray& r, const color& background, const hittable& world, in
 	ray scattered;
 	color attenuation;
 	color emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
+	double pdf;
+	color albedo;
 
-	if (!rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+	if (!rec.mat_ptr->scatter(r, rec, albedo, scattered, pdf))
 		return emitted;
 
-	return emitted + attenuation * ray_color(scattered, background, world, depth - 1);
+	return emitted
+		+ albedo * rec.mat_ptr->scattering_pdf(r, rec, scattered)
+		* ray_color(scattered, background, world, depth - 1) / pdf;
 }
 
 // screen
-int image_width = 800;
-int image_height = 800;
-int samples_per_pixel = 10000;
+int image_width = 600;
+int image_height = 600;
+int samples_per_pixel = 100;
 const int max_depth = 50;
 
 // camera
-point3 lookfrom(478, 278, -600);
+point3 lookfrom(278, 278, -800);
 point3 lookat(278, 278, 0);
 vec3 vup(0, 1, 0);
 float vfov = 40;
@@ -286,7 +290,7 @@ public:
 		startTime = glfwGetTime();
 
 		// world
-		init_final_scene();
+		init_cornell_box();
 
 		// Camera
 		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
@@ -344,7 +348,7 @@ public:
 		startTime = glfwGetTime();
 
 		// world
-		init_final_scene();
+		init_cornell_box();
 
 		// Camera
 		cam.init(lookfrom, lookat, vup, vfov, image_width / (float)image_height, aperture, dist_to_focus, 0.0, 1.0);
