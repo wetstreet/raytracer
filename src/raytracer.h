@@ -17,7 +17,7 @@
 
 color ray_color(
 	const ray& r, const color& background, const hittable& world,
-	shared_ptr<hittable>& lights, int depth
+	shared_ptr<hittable> lights, int depth
 ) {
 	hit_record rec;
 
@@ -29,23 +29,24 @@ color ray_color(
 	if (!world.hit(r, 0.001, infinity, rec))
 		return background;
 
-	ray scattered;
-	color attenuation;
+	scatter_record srec;
 	color emitted = rec.mat_ptr->emitted(r, rec, rec.u, rec.v, rec.p);
-	double pdf_val;
-	color albedo;
-	if (!rec.mat_ptr->scatter(r, rec, albedo, scattered, pdf_val))
+	if (!rec.mat_ptr->scatter(r, rec, srec))
 		return emitted;
-	
-    auto p0 = make_shared<hittable_pdf>(lights, rec.p);
-    auto p1 = make_shared<cosine_pdf>(rec.normal);
-    mixture_pdf mixed_pdf(p0, p1);
 
-    scattered = ray(rec.p, mixed_pdf.generate(), r.time());
-    pdf_val = mixed_pdf.value(scattered.direction());
+	if (srec.is_specular) {
+		return srec.attenuation
+			* ray_color(srec.specular_ray, background, world, lights, depth - 1);
+	}
+
+	auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+	mixture_pdf p(light_ptr, srec.pdf_ptr);
+
+	ray scattered = ray(rec.p, p.generate(), r.time());
+	auto pdf_val = p.value(scattered.direction());
 
 	return emitted
-		+ albedo * rec.mat_ptr->scattering_pdf(r, rec, scattered)
+		+ srec.attenuation * rec.mat_ptr->scattering_pdf(r, rec, scattered)
 		* ray_color(scattered, background, world, lights, depth - 1) / pdf_val;
 }
 
@@ -74,7 +75,7 @@ int tileSize = 16;
 
 class raytracer {
 	hittable_list world;
-	shared_ptr<hittable> lights;
+	shared_ptr<hittable_list> lights = make_shared<hittable_list>();
 	camera cam;
 	uint8_t* pixels = nullptr;
 
@@ -84,6 +85,11 @@ public:
 		auto r = pixel_color.x();
 		auto g = pixel_color.y();
 		auto b = pixel_color.z();
+
+		// Replace NaN components with zero. See explanation in Ray Tracing: The Rest of Your Life.
+		if (r != r) r = 0.0;
+		if (g != g) g = 0.0;
+		if (b != b) b = 0.0;
 
 		// Divide the color by the number of samples and gamma-correct for gamma=2.0.
 		auto scale = 1.0 / samples_per_pixel;
@@ -101,7 +107,8 @@ public:
 
 	void init_cornell_box()
 	{
-		lights = make_shared<xz_rect>(213, 343, 227, 332, 554, shared_ptr<material>());
+		lights->add(make_shared<xz_rect>(213, 343, 227, 332, 554, shared_ptr<material>()));
+		lights->add(make_shared<sphere>(point3(190, 90, 190), 90, shared_ptr<material>()));
 
 		auto red = make_shared<lambertian>(color(.65, .05, .05));
 		auto white = make_shared<lambertian>(color(.73, .73, .73));
@@ -115,15 +122,19 @@ public:
 		world.add(make_shared<xz_rect>(0, 555, 0, 555, 555, white));
 		world.add(make_shared<xy_rect>(0, 555, 0, 555, 555, white));
 
+		shared_ptr<material> aluminum = make_shared<metal>(color(0.8, 0.85, 0.88), 0.0);
 		shared_ptr<hittable> box1 = make_shared<box>(point3(0, 0, 0), point3(165, 330, 165), white);
 		box1 = make_shared<rotate_y>(box1, 15);
 		box1 = make_shared<translate>(box1, vec3(265, 0, 295));
 		world.add(box1);
 
-		shared_ptr<hittable> box2 = make_shared<box>(point3(0, 0, 0), point3(165, 165, 165), white);
-		box2 = make_shared<rotate_y>(box2, -18);
-		box2 = make_shared<translate>(box2, vec3(130, 0, 65));
-		world.add(box2);
+		//shared_ptr<hittable> box2 = make_shared<box>(point3(0, 0, 0), point3(165, 165, 165), white);
+		//box2 = make_shared<rotate_y>(box2, -18);
+		//box2 = make_shared<translate>(box2, vec3(130, 0, 65));
+		//world.add(box2);
+
+		auto glass = make_shared<dielectric>(1.5);
+		world.add(make_shared<sphere>(point3(190, 90, 190), 90, glass));
 	}
 
 	void render(uint8_t* _pixels)

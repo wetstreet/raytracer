@@ -3,6 +3,7 @@
 
 #include "hittable.h"
 #include "vec3.h"
+#include "onb.h"
 
 class sphere : public hittable {
 public:
@@ -13,7 +14,8 @@ public:
     virtual bool hit(
         const ray& r, double t_min, double t_max, hit_record& rec) const override;
     virtual bool bounding_box(double time0, double time1, aabb& output_box) const override;
-
+    virtual double sphere::pdf_value(const point3& o, const vec3& v) const override;
+    virtual vec3 sphere::random(const point3& o) const override;
 public:
     point3 center;
     double radius;
@@ -68,6 +70,25 @@ bool sphere::bounding_box(double time0, double time1, aabb& output_box) const {
         center - vec3(radius, radius, radius),
         center + vec3(radius, radius, radius));
     return true;
+}
+
+double sphere::pdf_value(const point3& o, const vec3& v) const {
+    hit_record rec;
+    if (!this->hit(ray(o, v), 0.001, infinity, rec))
+        return 0;
+
+    auto cos_theta_max = sqrt(1 - radius * radius / (center - o).length_squared());
+    auto solid_angle = 2 * pi * (1 - cos_theta_max);
+
+    return  1 / solid_angle;
+}
+
+vec3 sphere::random(const point3& o) const {
+    vec3 direction = center - o;
+    auto distance_squared = direction.length_squared();
+    onb uvw;
+    uvw.build_from_w(direction);
+    return uvw.local(random_to_sphere(radius, distance_squared));
 }
 
 #endif
